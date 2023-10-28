@@ -22,5 +22,16 @@
 #audio1 {
 	width: 50%;
 	margin: 50px auto;
-	display: block
+	display: block;
+}
+#fileupload {
+	position: absolute;
+	top: 150px;
+	color: white;
+	z-index: 100;
+}
+#button1 {
+	position: relative;
+	top: 40px;
+	z-index: 100;
 }
