@@ -13,12 +13,19 @@ class Player {
 	}
 
 	update() {
+		// horizontal movement
 		if (this.game.keys.indexOf('ArrowLeft') > -1) this.x -= this.speed;
 		if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
 
-		if (this.x < 0) this.x = 0;
-		else if (this.x > this.game.width - this.width)
-			this.x = this.game.width - this.width;
+		// horizontal boundaries
+		if (this.x < -this.width / 2) this.x = -this.width / 2;
+		else if (this.x > this.game.width - this.width / 2)
+			this.x = this.game.width - this.width / 2;
+	}
+	shoot() {
+		const projectile = this.game.getProjectile();
+		// pass in player's x & y to initialize the projectile
+		if (projectile) projectile.start(this.x + this.width / 2, this.y);
 	}
 }
 
@@ -35,9 +42,15 @@ class Projectile {
 		if (!this.free) context.fillRect(this.x, this.y, this.width, this.height);
 	}
 	update() {
-		if (!this.free) this.y -= this.speed;
+		if (!this.free) {
+			this.y -= this.speed;
+			// reset projectile if it leaves top boundary of canvas
+			if (this.y < -this.height) this.reset()
+		}
 	}
-	start() {
+	start(x, y) {
+		this.x = x - this.width / 2;	// off-set to center projectile
+		this.y = y;
 		this.free = false;
 	}
 	reset() {
@@ -58,11 +71,12 @@ class Game {
 		this.projectilesPool = [];
 		this.numberOfProjectiles = 10;
 		this.createProjectiles();
-		// console.log(this.projectilesPool);
 
 		// event listeners
 		window.addEventListener('keydown', (e) => {
 			if (this.keys.indexOf(e.key) === -1) this.keys.push(e.key);
+			// console.log(e.key);
+			if (e.key === 'q' || 'Q') this.player.shoot()
 		});
 		window.addEventListener('keyup', (e) => {
 			const index = this.keys.indexOf(e.key);
@@ -72,6 +86,11 @@ class Game {
 	render(context) {
 		this.player.draw(context);
 		this.player.update();
+		// cycle through projectilesPool
+		this.projectilesPool.forEach(projectile => {
+			projectile.update();
+			projectile.draw(context);
+		})
 	}
 	// create projectiles object pool
 	createProjectiles() {
