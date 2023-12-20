@@ -55,6 +55,11 @@ class Game {
 		this.keys = []; // keep track of keys that are pressed
 		this.player = new Player(this);
 
+		this.projectilesPool = [];
+		this.numberOfProjectiles = 10;
+		this.createProjectiles();
+		// console.log(this.projectilesPool);
+
 		// event listeners
 		window.addEventListener('keydown', (e) => {
 			if (this.keys.indexOf(e.key) === -1) this.keys.push(e.key);
@@ -67,6 +72,18 @@ class Game {
 	render(context) {
 		this.player.draw(context);
 		this.player.update();
+	}
+	// create projectiles object pool
+	createProjectiles() {
+		for (let i = 0; i < this.numberOfProjectiles; i++) {
+			this.projectilesPool.push(new Projectile());
+		}
+	}
+	// get free projectile object from the pool
+	getProjectile() {
+		for (let i = 0; i < this.projectilesPool.length; i++) {
+			if (this.projectilesPool[i].free) return this.projectilesPool[i];
+		}
 	}
 }
 
