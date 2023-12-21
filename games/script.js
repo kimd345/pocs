@@ -13,15 +13,29 @@ class Player {
 	}
 
 	update() {
-		// horizontal movement
-		if (this.game.keys.indexOf('ArrowLeft') > -1) this.x -= this.speed;
-		if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
+		// // horizontal keyboard movement
+		// if (this.game.keys.indexOf('ArrowLeft') > -1) this.x -= this.speed;
+		// if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
+
+		// horizontal mouse movement get the x position of the mouse cursor on hover
+		const canvas = this.game.canvas;
+		const ctx = this.game.canvas.getContext('2d');
+
+		canvas.addEventListener('mousemove', (e) => {
+			// calculate x position relative to canvas
+			const rect = canvas.getBoundingClientRect();
+			const x = e.clientX - rect.left - (this.width / 2) - 5; // offset 5 for canvas border
+
+			// console.log('mouse X: ', e.clientX);
+			this.x = x;
+		});
 
 		// horizontal boundaries
 		if (this.x < -this.width / 2) this.x = -this.width / 2;
 		else if (this.x > this.game.width - this.width / 2)
 			this.x = this.game.width - this.width / 2;
 	}
+
 	shoot() {
 		const projectile = this.game.getProjectile();
 		// pass in player's x & y to initialize the projectile
@@ -73,7 +87,16 @@ class Game {
 		this.createProjectiles();
 
 		// event listeners
-		window.addEventListener('keydown', (e) => {
+		// window.addEventListener('keydown', (e) => {
+		// 	if (this.keys.indexOf(e.key) === -1) this.keys.push(e.key);
+		// 	// console.log(e.key);
+		// 	if (e.key === 'q' || 'Q') this.player.shoot()
+		// });
+		// window.addEventListener('keyup', (e) => {
+		// 	const index = this.keys.indexOf(e.key);
+		// 	if (index > -1) this.keys.splice(index, 1);
+		// });
+		window.addEventListener('mousedown', (e) => {
 			if (this.keys.indexOf(e.key) === -1) this.keys.push(e.key);
 			// console.log(e.key);
 			if (e.key === 'q' || 'Q') this.player.shoot()
