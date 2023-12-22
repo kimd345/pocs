@@ -5,7 +5,7 @@ class Player {
 		this.height = 100;
 		this.x = this.game.width / 2 - this.width / 2;
 		this.y = this.game.height - this.height;
-		this.speed = 5;
+		// this.speed = 5;
 	}
 
 	draw(context) {
@@ -21,7 +21,7 @@ class Player {
 		const canvas = this.game.canvas;
 		// calculate x position relative to canvas
 		const rect = canvas.getBoundingClientRect();
-		
+
 		canvas.addEventListener('mousemove', (e) => {
 			const x = e.clientX - rect.left - this.width / 2 - 5; // offset 5 for canvas border
 			const y = e.clientY - rect.top - this.height / 2 - 5; // offset 5 for canvas border
@@ -59,11 +59,11 @@ class Projectile {
 		if (!this.free) {
 			this.y -= this.speed;
 			// reset projectile if it leaves top boundary of canvas
-			if (this.y < -this.height) this.reset()
+			if (this.y < -this.height) this.reset();
 		}
 	}
 	start(x, y) {
-		this.x = x - this.width / 2;	// off-set to center projectile
+		this.x = x - this.width / 2; // off-set to center projectile
 		this.y = y;
 		this.free = false;
 	}
@@ -81,7 +81,32 @@ class Enemy {
 		this.y;
 	}
 	draw(context) {
+		// No object-pool functionality for now, keep it simple (33:30)
 		context.strokeRect(this.x, this.y, this.width, this.height);
+	}
+	update() {}
+}
+
+class Wave {
+	constructor(game) {
+		this.game = game;
+		this.width = this.game.columns * this.game.enemySize;
+		this.height = this.game.rows * this.game.enemySize;
+		this.x = 0;
+		this.y = 0;
+		this.speedX = 3;
+		this.speedY = 0;
+	}
+	render(context) {
+		context.strokeRect(this.x, this.y, this.width, this.height);
+		this.speedY = 0;
+		// if hitting x boundaries
+		if (this.x < 0 || this.x > this.game.width - this.width) {
+			this.speedX *= -1;	// reverse x direction
+			this.speedY = this.game.enemySize // bump wave down by y
+		}
+		this.x += this.speedX;
+		this.y += this.speedY;
 	}
 }
 
@@ -97,6 +122,14 @@ class Game {
 		this.numberOfProjectiles = 10;
 		this.createProjectiles();
 
+		// enemy grid needs to be globally available in Game
+		this.columns = 3;
+		this.rows = 3;
+		this.enemySize = 60;
+
+		this.waves = [];
+		this.waves.push(new Wave(this));
+
 		// event listeners
 		// window.addEventListener('keydown', (e) => {
 		// 	if (this.keys.indexOf(e.key) === -1) this.keys.push(e.key);
@@ -110,7 +143,7 @@ class Game {
 		window.addEventListener('mousedown', (e) => {
 			this.keys.push(e.type);
 			// console.log(e);
-			if (e.type === 'mousedown') this.player.shoot()
+			if (e.type === 'mousedown') this.player.shoot();
 		});
 		window.addEventListener('mouseup', (e) => {
 			const index = this.keys.indexOf(e.type);
@@ -121,10 +154,14 @@ class Game {
 		this.player.draw(context);
 		this.player.update();
 		// cycle through projectilesPool
-		this.projectilesPool.forEach(projectile => {
+		this.projectilesPool.forEach((projectile) => {
 			projectile.update();
 			projectile.draw(context);
-		})
+		});
+		//
+		this.waves.forEach((wave) => {
+			wave.render(context);
+		});
 	}
 	// create projectiles object pool
 	createProjectiles() {
@@ -140,11 +177,14 @@ class Game {
 	}
 }
 
+// on load create canvas and instantiate Game
 window.addEventListener('load', () => {
 	const canvas = document.getElementById('canvas1');
 	const ctx = canvas.getContext('2d');
 	canvas.width = 600;
 	canvas.height = 800;
+	// ctx.fillStyle = 'white';
+	ctx.strokeStyle = 'black';
 
 	const game = new Game(canvas);
 
