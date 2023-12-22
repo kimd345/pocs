@@ -17,17 +17,17 @@ class Player {
 		// if (this.game.keys.indexOf('ArrowLeft') > -1) this.x -= this.speed;
 		// if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
 
-		// horizontal mouse movement get the x position of the mouse cursor on hover
+		// mouse movement to get the x & y position of the mouse cursor on hover
 		const canvas = this.game.canvas;
-		const ctx = this.game.canvas.getContext('2d');
-
+		// calculate x position relative to canvas
+		const rect = canvas.getBoundingClientRect();
+		
 		canvas.addEventListener('mousemove', (e) => {
-			// calculate x position relative to canvas
-			const rect = canvas.getBoundingClientRect();
-			const x = e.clientX - rect.left - (this.width / 2) - 5; // offset 5 for canvas border
-
+			const x = e.clientX - rect.left - this.width / 2 - 5; // offset 5 for canvas border
+			const y = e.clientY - rect.top - this.height / 2 - 5; // offset 5 for canvas border
 			// console.log('mouse X: ', e.clientX);
 			this.x = x;
+			this.y = y;
 		});
 
 		// horizontal boundaries
@@ -72,7 +72,18 @@ class Projectile {
 	}
 }
 
-class Enemy {}
+class Enemy {
+	constructor(game) {
+		this.game = game;
+		this.width;
+		this.height;
+		this.x;
+		this.y;
+	}
+	draw(context) {
+		context.strokeRect(this.x, this.y, this.width, this.height);
+	}
+}
 
 class Game {
 	constructor(canvas) {
@@ -97,12 +108,12 @@ class Game {
 		// 	if (index > -1) this.keys.splice(index, 1);
 		// });
 		window.addEventListener('mousedown', (e) => {
-			if (this.keys.indexOf(e.key) === -1) this.keys.push(e.key);
-			// console.log(e.key);
-			if (e.key === 'q' || 'Q') this.player.shoot()
+			this.keys.push(e.type);
+			// console.log(e);
+			if (e.type === 'mousedown') this.player.shoot()
 		});
-		window.addEventListener('keyup', (e) => {
-			const index = this.keys.indexOf(e.key);
+		window.addEventListener('mouseup', (e) => {
+			const index = this.keys.indexOf(e.type);
 			if (index > -1) this.keys.splice(index, 1);
 		});
 	}
