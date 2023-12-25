@@ -23,9 +23,9 @@ class Player {
 		const rect = canvas.getBoundingClientRect();
 
 		canvas.addEventListener('mousemove', (e) => {
+			if (e.target.id !== 'canvas1') return; // exit if the mouse is outside the canvas
 			const x = e.clientX - rect.left - this.width / 2 - 5; // offset 5 for canvas border
 			const y = e.clientY - rect.top - this.height / 2 - 5; // offset 5 for canvas border
-			// console.log('mouse X: ', e.clientX);
 			this.x = x;
 			this.y = y;
 		});
@@ -73,18 +73,23 @@ class Projectile {
 }
 
 class Enemy {
-	constructor(game) {
+	constructor(game, positionX, positionY) {
 		this.game = game;
-		this.width;
-		this.height;
-		this.x;
-		this.y;
+		this.width = this.game.enemySize;
+		this.height = this.game.enemySize;
+		this.x = 0;
+		this.y = 0;
+		this.positionX = positionX; // relative coords of enemy position within wave
+		this.positionY = positionY;
 	}
 	draw(context) {
 		// No object-pool functionality for now, keep it simple (33:30)
 		context.strokeRect(this.x, this.y, this.width, this.height);
 	}
-	update() {}
+	update(x, y) {
+		this.x = x + this.positionX;
+		this.y = y + this.positionY;
+	}
 }
 
 class Wave {
@@ -93,20 +98,35 @@ class Wave {
 		this.width = this.game.columns * this.game.enemySize;
 		this.height = this.game.rows * this.game.enemySize;
 		this.x = 0;
-		this.y = 0;
+		this.y = -this.height;	// start from off-screen
 		this.speedX = 3;
 		this.speedY = 0;
+		this.enemies = [];
+		this.create();
 	}
 	render(context) {
-		context.strokeRect(this.x, this.y, this.width, this.height);
+		if (this.y < 0) this.y += 5;	// make wave slide in
 		this.speedY = 0;
 		// if hitting x boundaries
 		if (this.x < 0 || this.x > this.game.width - this.width) {
-			this.speedX *= -1;	// reverse x direction
-			this.speedY = this.game.enemySize // bump wave down by y
+			this.speedX *= -1; // reverse x direction
+			this.speedY = this.game.enemySize; // bump wave down by y
 		}
 		this.x += this.speedX;
 		this.y += this.speedY;
+		this.enemies.forEach((enemy) => {
+			enemy.update(this.x, this.y);
+			enemy.draw(context);
+		});
+	}
+	create() {
+		for (let y = 0; y < this.game.rows; y++) {
+			for (let x = 0; x < this.game.columns; x++) {
+				let enemyX = x * this.game.enemySize;
+				let enemyY = y * this.game.enemySize;
+				this.enemies.push(new Enemy(this.game, enemyX, enemyY));
+			}
+		}
 	}
 }
 
@@ -184,7 +204,7 @@ window.addEventListener('load', () => {
 	canvas.width = 600;
 	canvas.height = 800;
 	// ctx.fillStyle = 'white';
-	ctx.strokeStyle = 'black';
+	// ctx.strokeStyle = 'black';
 
 	const game = new Game(canvas);
 
