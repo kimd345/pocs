@@ -67,7 +67,7 @@ class Projectile {
 		this.y = y;
 		this.free = false;
 	}
-	reset() {
+	reset() {	// return projectile to pool
 		this.free = true;
 	}
 }
@@ -81,6 +81,7 @@ class Enemy {
 		this.y = 0;
 		this.positionX = positionX; // relative coords of enemy position within wave
 		this.positionY = positionY;
+		this.markedForDeletion = false;
 	}
 	draw(context) {
 		// No object-pool functionality for now, keep it simple (33:30)
@@ -89,6 +90,13 @@ class Enemy {
 	update(x, y) {
 		this.x = x + this.positionX;
 		this.y = y + this.positionY;
+		// check collision enemies - projectiles
+		this.game.projectilesPool.forEach((projectile) => {
+			if (!projectile.free && this.game.checkCollision(this, projectile)) {
+				this.markedForDeletion = true;
+				projectile.reset();	// projectile is free after collision and prevents penetrating all enemies
+			}
+		});
 	}
 }
 
@@ -98,14 +106,15 @@ class Wave {
 		this.width = this.game.columns * this.game.enemySize;
 		this.height = this.game.rows * this.game.enemySize;
 		this.x = 0;
-		this.y = -this.height;	// start from off-screen
+		this.y = -this.height; // start from off-screen
 		this.speedX = 3;
 		this.speedY = 0;
 		this.enemies = [];
-		this.create();
+		this.create();	// invoke create wave
 	}
 	render(context) {
-		if (this.y < 0) this.y += 5;	// make wave slide in
+		// !!!! TODO: Does this cause performance issues for mouse move?
+		if (this.y < 0) this.y += 5; // make wave slide in
 		this.speedY = 0;
 		// if hitting x boundaries
 		if (this.x < 0 || this.x > this.game.width - this.width) {
@@ -118,6 +127,8 @@ class Wave {
 			enemy.update(this.x, this.y);
 			enemy.draw(context);
 		});
+		// filter out enemies marked for deletion
+		this.enemies = this.enemies.filter((enemy) => !enemy.markedForDeletion);
 	}
 	create() {
 		for (let y = 0; y < this.game.rows; y++) {
@@ -139,7 +150,7 @@ class Game {
 		this.player = new Player(this);
 
 		this.projectilesPool = [];
-		this.numberOfProjectiles = 10;
+		this.numberOfProjectiles = 3;
 		this.createProjectiles();
 
 		// enemy grid needs to be globally available in Game
@@ -194,6 +205,15 @@ class Game {
 		for (let i = 0; i < this.projectilesPool.length; i++) {
 			if (this.projectilesPool[i].free) return this.projectilesPool[i];
 		}
+	}
+	// collision detection between 2 rectangles
+	checkCollision(rect1, rect2) {
+		return (
+			rect1.x < rect2.x + rect2.width &&
+			rect1.x + rect1.width > rect2.x &&
+			rect1.y < rect2.y + rect2.height &&
+			rect1.y + rect1.height > rect2.y
+		);
 	}
 }
 
