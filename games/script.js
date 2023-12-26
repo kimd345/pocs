@@ -83,8 +83,14 @@ class Enemy {
 			if (!projectile.free && this.game.checkCollision(this, projectile)) {
 				this.markedForDeletion = true;
 				projectile.reset(); // projectile is free after collision and prevents penetrating all enemies
+				this.game.score++; // increment score on collision
 			}
 		});
+		// lose condition
+		if (this.game.checkCollision(this, this.game.player)) {
+			this.game.gameOver = true;
+			this.markedForDeletion = true;
+		}
 	}
 }
 
@@ -148,22 +154,15 @@ class Game {
 		this.waves = [];
 		this.waves.push(new Wave(this));
 
-		// event listeners
-		// window.addEventListener('keydown', (e) => {
-		// 	if (this.keys.indexOf(e.key) === -1) this.keys.push(e.key);
-		// 	// console.log(e.key);
-		// 	if (e.key === 'q' || 'Q') this.player.shoot()
-		// });
-		// window.addEventListener('keyup', (e) => {
-		// 	const index = this.keys.indexOf(e.key);
-		// 	if (index > -1) this.keys.splice(index, 1);
-		// });
-		window.addEventListener('mousedown', (e) => {
+		// game status
+		this.score = 0;
+		this.gameOver = false;
+
+		canvas.addEventListener('mousedown', (e) => {
 			this.keys.push(e.type);
-			// console.log(e);
 			if (e.type === 'mousedown') this.player.shoot();
 		});
-		window.addEventListener('mouseup', (e) => {
+		canvas.addEventListener('mouseup', (e) => {
 			const index = this.keys.indexOf(e.type);
 			if (index > -1) this.keys.splice(index, 1);
 		});
@@ -171,24 +170,17 @@ class Game {
 		// mouse movement to get the x & y position of the mouse cursor on hover
 		// calculate x position relative to canvas
 		const rect = canvas.getBoundingClientRect();
-
 		canvas.addEventListener('mousemove', (e) => {
-			console.log('mousemove');
 			if (e.target.id !== 'canvas1') return; // exit if the mouse is outside the canvas
 			const x = e.clientX - rect.left - this.player.width / 2 - 5; // offset 5 for canvas border
 			const y = e.clientY - rect.top - this.player.height / 2 - 5; // offset 5 for canvas border
 			this.player.x = x;
 			this.player.y = y;
 		});
-
-		// horizontal boundaries
-		if (this.player.x < -this.player.width / 2)
-			this.player.x = -this.player.width / 2;
-		else if (this.player.x > this.width - this.player.width / 2)
-			this.player.x = this.width - this.player.width / 2;
 	}
 	render(context) {
-		console.log('game render');
+		this.drawStatusText(context);
+		// console.log('game render');
 		this.player.draw(context);
 		// this.player.update();	// old implementation for movement inside Player class
 		// cycle through projectilesPool
@@ -222,6 +214,17 @@ class Game {
 			rect1.y + rect1.height > rect2.y
 		);
 	}
+	//
+	drawStatusText(context) {
+		context.save();	// saves global context settings inside window load event listener
+		context.fillText(`Score: ${this.score}`, 20, 40);
+		if (this.gameOver) {
+			context.textAlign = 'center';
+			context.font = '100px Impact';
+			context.fillText('gg', this.width / 2, this.height / 2);
+		}
+		context.restore();	// restores from last saved context settings
+	}
 }
 
 // on load create canvas and instantiate Game
@@ -232,6 +235,8 @@ window.addEventListener('load', () => {
 	canvas.height = 800;
 	// ctx.fillStyle = 'white';
 	// ctx.strokeStyle = 'black';
+	ctx.lineWidth = 5;
+	ctx.font = '30px Impact';
 
 	const game = new Game(canvas);
 
