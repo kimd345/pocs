@@ -12,29 +12,16 @@ class Player {
 		context.fillRect(this.x, this.y, this.width, this.height);
 	}
 
-	update() {
-		// // horizontal keyboard movement
-		// if (this.game.keys.indexOf('ArrowLeft') > -1) this.x -= this.speed;
-		// if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
+	// update() {
+	// // horizontal keyboard movement
+	// if (this.game.keys.indexOf('ArrowLeft') > -1) this.x -= this.speed;
+	// if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
 
-		// mouse movement to get the x & y position of the mouse cursor on hover
-		const canvas = this.game.canvas;
-		// calculate x position relative to canvas
-		const rect = canvas.getBoundingClientRect();
-
-		canvas.addEventListener('mousemove', (e) => {
-			if (e.target.id !== 'canvas1') return; // exit if the mouse is outside the canvas
-			const x = e.clientX - rect.left - this.width / 2 - 5; // offset 5 for canvas border
-			const y = e.clientY - rect.top - this.height / 2 - 5; // offset 5 for canvas border
-			this.x = x;
-			this.y = y;
-		});
-
-		// horizontal boundaries
-		if (this.x < -this.width / 2) this.x = -this.width / 2;
-		else if (this.x > this.game.width - this.width / 2)
-			this.x = this.game.width - this.width / 2;
-	}
+	// 	// horizontal boundaries
+	// 	if (this.x < -this.width / 2) this.x = -this.width / 2;
+	// 	else if (this.x > this.game.width - this.width / 2)
+	// 		this.x = this.game.width - this.width / 2;
+	// }
 
 	shoot() {
 		const projectile = this.game.getProjectile();
@@ -67,7 +54,8 @@ class Projectile {
 		this.y = y;
 		this.free = false;
 	}
-	reset() {	// return projectile to pool
+	reset() {
+		// return projectile to pool
 		this.free = true;
 	}
 }
@@ -94,7 +82,7 @@ class Enemy {
 		this.game.projectilesPool.forEach((projectile) => {
 			if (!projectile.free && this.game.checkCollision(this, projectile)) {
 				this.markedForDeletion = true;
-				projectile.reset();	// projectile is free after collision and prevents penetrating all enemies
+				projectile.reset(); // projectile is free after collision and prevents penetrating all enemies
 			}
 		});
 	}
@@ -110,10 +98,9 @@ class Wave {
 		this.speedX = 3;
 		this.speedY = 0;
 		this.enemies = [];
-		this.create();	// invoke create wave
+		this.create(); // invoke create wave
 	}
 	render(context) {
-		// !!!! TODO: Does this cause performance issues for mouse move?
 		if (this.y < 0) this.y += 5; // make wave slide in
 		this.speedY = 0;
 		// if hitting x boundaries
@@ -180,10 +167,30 @@ class Game {
 			const index = this.keys.indexOf(e.type);
 			if (index > -1) this.keys.splice(index, 1);
 		});
+
+		// mouse movement to get the x & y position of the mouse cursor on hover
+		// calculate x position relative to canvas
+		const rect = canvas.getBoundingClientRect();
+
+		canvas.addEventListener('mousemove', (e) => {
+			console.log('mousemove');
+			if (e.target.id !== 'canvas1') return; // exit if the mouse is outside the canvas
+			const x = e.clientX - rect.left - this.player.width / 2 - 5; // offset 5 for canvas border
+			const y = e.clientY - rect.top - this.player.height / 2 - 5; // offset 5 for canvas border
+			this.player.x = x;
+			this.player.y = y;
+		});
+
+		// horizontal boundaries
+		if (this.player.x < -this.player.width / 2)
+			this.player.x = -this.player.width / 2;
+		else if (this.player.x > this.width - this.player.width / 2)
+			this.player.x = this.width - this.player.width / 2;
 	}
 	render(context) {
+		console.log('game render');
 		this.player.draw(context);
-		this.player.update();
+		// this.player.update();	// old implementation for movement inside Player class
 		// cycle through projectilesPool
 		this.projectilesPool.forEach((projectile) => {
 			projectile.update();
