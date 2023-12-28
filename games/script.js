@@ -101,9 +101,10 @@ class Wave {
 		this.height = this.game.rows * this.game.enemySize;
 		this.x = 0;
 		this.y = -this.height; // start from off-screen
-		this.speedX = 3;
+		this.speedX = 2;
 		this.speedY = 0;
-		this.enemies = [];
+		this.enemies = []; // contains enemies active in wave
+		this.nextWaveTrigger = false; // flag to trigger new wave, initialized to false every wave
 		this.create(); // invoke create wave
 	}
 	render(context) {
@@ -146,7 +147,7 @@ class Game {
 		this.numberOfProjectiles = 3;
 		this.createProjectiles();
 
-		// enemy grid needs to be globally available in Game
+		// enemy grid needs to be globally available in Game (ie not reinitialized on new Wave instantiation where columns and rows are incremented)
 		this.columns = 3;
 		this.rows = 3;
 		this.enemySize = 60;
@@ -154,9 +155,10 @@ class Game {
 		this.waves = [];
 		this.waves.push(new Wave(this));
 
-		// game status
+		// game status / text
 		this.score = 0;
 		this.gameOver = false;
+		this.waveCount = 1;
 
 		canvas.addEventListener('mousedown', (e) => {
 			this.keys.push(e.type);
@@ -187,9 +189,15 @@ class Game {
 			projectile.update();
 			projectile.draw(context);
 		});
-		//
+		// Enemy Waves
 		this.waves.forEach((wave) => {
 			wave.render(context);
+			// condition to trigger new wave
+			if (wave.enemies.length < 1 && !wave.nextWaveTrigger && !this.gameOver) {
+				this.newWave();
+				this.waveCount++;
+				wave.nextWaveTrigger = true;
+			}
 		});
 	}
 	// create projectiles object pool
@@ -215,14 +223,24 @@ class Game {
 	}
 	//
 	drawStatusText(context) {
-		context.save();	// saves global context settings inside window load event listener
+		context.save(); // saves global context settings inside window load event listener
 		context.fillText(`Score: ${this.score}`, 20, 40);
+		context.fillText(`Wave: ${this.waveCount}`, 20, 60);
 		if (this.gameOver) {
 			context.textAlign = 'center';
 			context.font = '100px Impact';
 			context.fillText('gg', this.width / 2, this.height / 2);
 		}
-		context.restore();	// restores from last saved context settings
+		context.restore(); // restores from last saved context settings
+	}
+	// create new wave with more difficulty (TODO: adjust logic to taste)
+	newWave() {
+		if (Math.random() < 0.5 && this.columns * this.enemySize < this.width * 0.8) {
+			this.columns++; // increment y dimension
+		} else if (this.rows * this.enemySize < this.height * 0.6) {
+			this.rows++; // increment x dimension
+		}
+		this.waves.push(new Wave(this));
 	}
 }
 
