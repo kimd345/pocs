@@ -180,7 +180,6 @@ class Game {
 	}
 	render(context) {
 		this.drawStatusText(context);
-		// console.log('game render');
 		this.player.draw(context);
 		// this.player.update();	// old implementation for movement inside Player class
 		// cycle through projectilesPool
