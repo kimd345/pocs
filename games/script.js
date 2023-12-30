@@ -5,6 +5,7 @@ class Player {
 		this.height = 100;
 		this.x = this.game.width / 2 - this.width / 2;
 		this.y = this.game.height - this.height;
+		this.lives = 3;
 		// this.speed = 5;
 	}
 
@@ -83,11 +84,18 @@ class Enemy {
 			if (!projectile.free && this.game.checkCollision(this, projectile)) {
 				this.markedForDeletion = true;
 				projectile.reset(); // projectile is free after collision and prevents penetrating all enemies
-				this.game.score++; // increment score on collision
+				if (!this.game.gameOver) this.game.score++; // increment score on collision if game isn't over
 			}
 		});
-		// lose condition
+		// check collision enemies - player
 		if (this.game.checkCollision(this, this.game.player)) {
+			this.markedForDeletion = true;
+			if (!this.game.gameOver && this.game.score > 0) this.game.score--;	// decrement score
+			this.game.player.lives--;	// decrement life
+			if (this.game.player.lives < 1) this.game.gameOver = true;
+		}
+		// lose condition -- enemy reaches bottom of canvas
+		if (this.y + this.height > this.game.height) {
 			this.game.gameOver = true;
 			this.markedForDeletion = true;
 		}
@@ -225,7 +233,11 @@ class Game {
 	drawStatusText(context) {
 		context.save(); // saves global context settings inside window load event listener
 		context.fillText(`Score: ${this.score}`, 20, 40);
-		context.fillText(`Wave: ${this.waveCount}`, 20, 60);
+		context.fillText(`Wave: ${this.waveCount}`, 20, 80);
+		// display lives in rectangles
+		for (let i = 0; i < this.player.lives; i++) {
+			context.fillRect(20 + 10 * i, 100, 20, 20);
+		}
 		if (this.gameOver) {
 			context.textAlign = 'center';
 			context.font = '100px Impact';
