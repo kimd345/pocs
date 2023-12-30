@@ -3,6 +3,9 @@ playground/sandbox
 
 #### JS/HTML/CSS
 
-###### Game
+###### Plane Shooter Game
+- Optimizations:
+	- Projectiles object pool for memory related performance
+	- 
 
 ###### Audio Visualizer

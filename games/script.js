@@ -3,7 +3,7 @@ class Player {
 		this.game = game;
 		this.width = 100;
 		this.height = 100;
-		this.x = this.game.width / 2 - this.width / 2;
+		this.x = this.game.width * 0.5 - this.width * 0.5;
 		this.y = this.game.height - this.height;
 		this.lives = 3;
 		// this.speed = 5;
@@ -19,15 +19,20 @@ class Player {
 	// if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
 
 	// 	// horizontal boundaries
-	// 	if (this.x < -this.width / 2) this.x = -this.width / 2;
-	// 	else if (this.x > this.game.width - this.width / 2)
-	// 		this.x = this.game.width - this.width / 2;
+	// 	if (this.x < -this.width * 0.5) this.x = -this.width * 0.5;
+	// 	else if (this.x > this.game.width - this.width * 0.5)
+	// 		this.x = this.game.width - this.width * 0.5;
 	// }
 
 	shoot() {
 		const projectile = this.game.getProjectile();
 		// pass in player's x & y to initialize the projectile
-		if (projectile) projectile.start(this.x + this.width / 2, this.y);
+		if (projectile) projectile.start(this.x + this.width * 0.5, this.y);
+	}
+	restart() {
+		this.x = this.game.width * 0.5 - this.width * 0.5;
+		this.y = this.game.height - this.height;
+		this.lives = 3;
 	}
 }
 
@@ -51,7 +56,7 @@ class Projectile {
 		}
 	}
 	start(x, y) {
-		this.x = x - this.width / 2; // off-set to center projectile
+		this.x = x - this.width * 0.5; // off-set to center projectile
 		this.y = y;
 		this.free = false;
 	}
@@ -90,8 +95,8 @@ class Enemy {
 		// check collision enemies - player
 		if (this.game.checkCollision(this, this.game.player)) {
 			this.markedForDeletion = true;
-			if (!this.game.gameOver && this.game.score > 0) this.game.score--;	// decrement score
-			this.game.player.lives--;	// decrement life
+			if (!this.game.gameOver && this.game.score > 0) this.game.score--; // decrement score
+			this.game.player.lives--; // decrement life
 			if (this.game.player.lives < 1) this.game.gameOver = true;
 		}
 		// lose condition -- enemy reaches bottom of canvas
@@ -182,10 +187,15 @@ class Game {
 		const rect = canvas.getBoundingClientRect();
 		canvas.addEventListener('mousemove', (e) => {
 			if (e.target.id !== 'canvas1') return; // exit if the mouse is outside the canvas
-			const x = e.clientX - rect.left - this.player.width / 2 - 5; // offset 5 for canvas border
-			const y = e.clientY - rect.top - this.player.height / 2 - 5; // offset 5 for canvas border
+			const x = e.clientX - rect.left - this.player.width * 0.5 - 5; // offset 5 for canvas border
+			const y = e.clientY - rect.top - this.player.height * 0.5 - 5; // offset 5 for canvas border
 			this.player.x = x;
 			this.player.y = y;
+		});
+
+		// reset game
+		window.addEventListener('keydown', (e) => {
+			if (e.key === 'r' && this.gameOver) this.restart();
 		});
 	}
 	render(context) {
@@ -205,6 +215,7 @@ class Game {
 				this.newWave();
 				this.waveCount++;
 				wave.nextWaveTrigger = true;
+				this.player.lives++; // bonus life per new wave
 			}
 		});
 	}
@@ -236,23 +247,42 @@ class Game {
 		context.fillText(`Wave: ${this.waveCount}`, 20, 80);
 		// display lives in rectangles
 		for (let i = 0; i < this.player.lives; i++) {
-			context.fillRect(20 + 10 * i, 100, 20, 20);
+			context.fillRect(20 + 10 * i, 100, 5, 20);
 		}
 		if (this.gameOver) {
 			context.textAlign = 'center';
 			context.font = '100px Impact';
-			context.fillText('gg', this.width / 2, this.height / 2);
+			context.fillText('gg', this.width * 0.5, this.height * 0.5);
+			context.font = '20px Impact';
+			const reset = context.fillText(
+				'Press "r" to restart',
+				this.width * 0.5,
+				this.height * 0.5 + 40
+			);
 		}
 		context.restore(); // restores from last saved context settings
 	}
 	// create new wave with more difficulty (TODO: adjust logic to taste)
 	newWave() {
-		if (Math.random() < 0.5 && this.columns * this.enemySize < this.width * 0.8) {
+		if (
+			Math.random() < 0.5 &&
+			this.columns * this.enemySize < this.width * 0.8
+		) {
 			this.columns++; // increment y dimension
 		} else if (this.rows * this.enemySize < this.height * 0.6) {
 			this.rows++; // increment x dimension
 		}
 		this.waves.push(new Wave(this));
+	}
+	restart() {
+		this.player.restart();
+		this.columns = 3;
+		this.rows = 3;
+		this.waves = [];
+		this.waves.push(new Wave(this));
+		this.score = 0;
+		this.gameOver = false;
+		this.waveCount = 1;
 	}
 }
 
