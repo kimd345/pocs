@@ -82,15 +82,15 @@ class Enemy {
 		// No object-pool functionality for now, keep it simple (33:30)
 		// context.strokeRect(this.x, this.y, this.width, this.height);	// rectangle template around enemies
 		context.drawImage(
-			this.image,		// image file path
-			this.frameX * this.width,	// source x coord of crop area
-			this.frameY * this.height,	// source y coord of crop area
-			this.width,		// source width
-			this.height,	// source height
-			this.x,			// 
-			this.y,			//
-			this.width,		//
-			this.height		//
+			this.image, // image file path
+			this.frameX * this.width, // source x coord of crop area
+			this.frameY * this.height, // source y coord of crop area
+			this.width, // source width
+			this.height, // source height
+			this.x, //
+			this.y, //
+			this.width, //
+			this.height //
 		);
 	}
 	update(x, y) {
@@ -98,16 +98,20 @@ class Enemy {
 		this.y = y + this.positionY;
 		// check collision enemies - projectiles
 		this.game.projectilesPool.forEach((projectile) => {
-			if (!projectile.free && this.game.checkCollision(this, projectile)) {
-				this.hit(1);	// 
+			if (
+				!projectile.free &&
+				this.game.checkCollision(this, projectile) &&
+				this.lives > 0	// prevent projectile blocking by enemies undergoing frameX animation
+			) {
+				this.hit(1); //
 				projectile.reset(); // projectile is free after collision and prevents penetrating all enemies
 			}
 		});
 		if (this.lives < 1) {
-			this.frameX++;
+			if (this.game.spriteUpdate) this.frameX++;
 			if (this.frameX > this.maxFrame) {
-				this.markedForDeletion = true;	// will be removed from enemies arr, no longer referenced and deleted by garbage collection
-				if (!this.game.gameOver) this.game.score += this.maxLives;	// increase score
+				this.markedForDeletion = true; // will be removed from enemies arr, no longer referenced and deleted by garbage collection
+				if (!this.game.gameOver) this.game.score += this.maxLives; // increase score
 			}
 		}
 		// check collision enemies - player
@@ -134,11 +138,11 @@ class Beetlemorph extends Enemy {
 		super(game, positionX, positionY); // call parent class constructor
 		// JS prototypal inheritance behavior will look in parent which doesn't have this.image
 		this.image = document.getElementById('beetlemorph');
-		this.frameX = 0;	// horizontal navigation across sprite sheet
+		this.frameX = 0; // horizontal navigation across sprite sheet
 		this.maxFrame = 2;
-		this.frameY = Math.floor(Math.random() * 4);	// vertical navigation across sprite sheet
+		this.frameY = Math.floor(Math.random() * 4); // vertical navigation across sprite sheet
 		this.lives = 1;
-		this.maxLives = this.lives;	// store original lives to reward pts on kill
+		this.maxLives = this.lives; // store original lives to reward pts on kill
 	}
 }
 
@@ -147,9 +151,9 @@ class Wave {
 		this.game = game;
 		this.width = this.game.columns * this.game.enemySize;
 		this.height = this.game.rows * this.game.enemySize;
-		this.x = this.game.width * 0.5 - this.width * 0.5;	// start from middle of canvas, shifted left by half of wave width
+		this.x = this.game.width * 0.5 - this.width * 0.5; // start from middle of canvas, shifted left by half of wave width
 		this.y = -this.height; // start from off-screen
-		this.speedX = 1.5 * (Math.random() < 0.5 ? -1 : 1);	// randomize initial left or right movement
+		this.speedX = 1.5 * (Math.random() < 0.5 ? -1 : 1); // randomize initial left or right movement
 		this.speedY = 0;
 		this.enemies = []; // contains enemies active in wave
 		this.nextWaveTrigger = false; // flag to trigger new wave, initialized to false every wave
@@ -208,6 +212,11 @@ class Game {
 		this.gameOver = false;
 		this.waveCount = 1;
 
+		// flag for sprite update
+		this.spriteUpdate = false;
+		this.spriteTimer = 0;
+		this.spriteInterval = 100;
+
 		canvas.addEventListener('mousedown', (e) => {
 			this.keys.push(e.type);
 			if (e.type === 'mousedown') this.player.shoot();
@@ -233,7 +242,16 @@ class Game {
 			if (e.key === 'r' && this.gameOver) this.restart();
 		});
 	}
-	render(context) {
+	render(context, deltaTime) {
+		// sprite timing
+		if (this.spriteTimer > this.spriteInterval) {
+			this.spriteUpdate = true;
+			this.spriteTimer = 0;
+		} else {
+			this.spriteUpdate = false;
+			this.spriteTimer += deltaTime; // deltaTime is actual frame time in milliseconds and will trigger in same interval on slow and on fast refresh screens
+		}
+
 		this.drawStatusText(context);
 		this.player.draw(context);
 		// this.player.update();	// old implementation for movement inside Player class
@@ -334,10 +352,16 @@ window.addEventListener('load', () => {
 
 	const game = new Game(canvas);
 
-	function animate() {
+	let lastTime = 0;
+	function animate(timeStamp) {
+		const deltaTime = timeStamp - lastTime;
+		lastTime = timeStamp;
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		game.render(ctx);
+		game.render(ctx, deltaTime);
+		// 2 special features:
+		// 1. automatically speed at which it serves next animation frame and adjusts to client screen refresh rate to prevent unnecessary frames
+		// 2. automatically creates timestamp in milliseconds of first animation frame in the sequence
 		requestAnimationFrame(animate);
 	}
-	animate();
+	animate(0);
 });
