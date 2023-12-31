@@ -67,6 +67,7 @@ class Projectile {
 }
 
 class Enemy {
+	// enemy super class
 	constructor(game, positionX, positionY) {
 		this.game = game;
 		this.width = this.game.enemySize;
@@ -79,7 +80,18 @@ class Enemy {
 	}
 	draw(context) {
 		// No object-pool functionality for now, keep it simple (33:30)
-		context.strokeRect(this.x, this.y, this.width, this.height);
+		// context.strokeRect(this.x, this.y, this.width, this.height);	// rectangle template around enemies
+		context.drawImage(
+			this.image,		// image file path
+			this.frameX * this.width,	// source x coord of crop area
+			this.frameY * this.height,	// source y coord of crop area
+			this.width,		// source width
+			this.height,	// source height
+			this.x,			// 
+			this.y,			//
+			this.width,		//
+			this.height		//
+		);
 	}
 	update(x, y) {
 		this.x = x + this.positionX;
@@ -87,11 +99,17 @@ class Enemy {
 		// check collision enemies - projectiles
 		this.game.projectilesPool.forEach((projectile) => {
 			if (!projectile.free && this.game.checkCollision(this, projectile)) {
-				this.markedForDeletion = true;
+				this.hit(1);	// 
 				projectile.reset(); // projectile is free after collision and prevents penetrating all enemies
-				if (!this.game.gameOver) this.game.score++; // increment score on collision if game isn't over
 			}
 		});
+		if (this.lives < 1) {
+			this.frameX++;
+			if (this.frameX > this.maxFrame) {
+				this.markedForDeletion = true;	// will be removed from enemies arr, no longer referenced and deleted by garbage collection
+				if (!this.game.gameOver) this.game.score += this.maxLives;	// increase score
+			}
+		}
 		// check collision enemies - player
 		if (this.game.checkCollision(this, this.game.player)) {
 			this.markedForDeletion = true;
@@ -105,6 +123,23 @@ class Enemy {
 			this.markedForDeletion = true;
 		}
 	}
+	hit(damage) {
+		this.lives -= damage;
+	}
+}
+
+class Beetlemorph extends Enemy {
+	// enemy sub class
+	constructor(game, positionX, positionY) {
+		super(game, positionX, positionY); // call parent class constructor
+		// JS prototypal inheritance behavior will look in parent which doesn't have this.image
+		this.image = document.getElementById('beetlemorph');
+		this.frameX = 0;	// horizontal navigation across sprite sheet
+		this.maxFrame = 2;
+		this.frameY = Math.floor(Math.random() * 4);	// vertical navigation across sprite sheet
+		this.lives = 1;
+		this.maxLives = this.lives;	// store original lives to reward pts on kill
+	}
 }
 
 class Wave {
@@ -112,9 +147,9 @@ class Wave {
 		this.game = game;
 		this.width = this.game.columns * this.game.enemySize;
 		this.height = this.game.rows * this.game.enemySize;
-		this.x = 0;
+		this.x = this.game.width * 0.5 - this.width * 0.5;	// start from middle of canvas, shifted left by half of wave width
 		this.y = -this.height; // start from off-screen
-		this.speedX = 2;
+		this.speedX = 1.5 * (Math.random() < 0.5 ? -1 : 1);	// randomize initial left or right movement
 		this.speedY = 0;
 		this.enemies = []; // contains enemies active in wave
 		this.nextWaveTrigger = false; // flag to trigger new wave, initialized to false every wave
@@ -142,7 +177,7 @@ class Wave {
 			for (let x = 0; x < this.game.columns; x++) {
 				let enemyX = x * this.game.enemySize;
 				let enemyY = y * this.game.enemySize;
-				this.enemies.push(new Enemy(this.game, enemyX, enemyY));
+				this.enemies.push(new Beetlemorph(this.game, enemyX, enemyY));
 			}
 		}
 	}
@@ -163,7 +198,7 @@ class Game {
 		// enemy grid needs to be globally available in Game (ie not reinitialized on new Wave instantiation where columns and rows are incremented)
 		this.columns = 3;
 		this.rows = 3;
-		this.enemySize = 60;
+		this.enemySize = 80; // adjust to sprite sheet
 
 		this.waves = [];
 		this.waves.push(new Wave(this));
