@@ -1,16 +1,34 @@
 class Player {
 	constructor(game) {
 		this.game = game;
-		this.width = 100;
-		this.height = 100;
+		this.width = 140;
+		this.height = 120;
 		this.x = this.game.width * 0.5 - this.width * 0.5;
 		this.y = this.game.height - this.height;
-		this.lives = 3;
 		// this.speed = 5;
+		this.maxLives = 10;
+		this.lives = 3;
+		this.image = document.getElementById('player');
+		this.frameX = 0;
 	}
 
 	draw(context) {
-		context.fillRect(this.x, this.y, this.width, this.height);
+		if (this.game.keys.indexOf('mousedown') > -1) {
+			this.frameX = 1;
+		} else {
+			this.frameX = 0;
+		}
+		context.drawImage(
+			this.image, // image file path
+			this.frameX * this.width,	// source x
+			0,	// source y
+			this.width,		// source width
+			this.height,	// source height
+			this.x, // source x coord of crop area
+			this.y,
+			this.width, // source width
+			this.height, // source height
+		);
 	}
 
 	// update() {
@@ -46,7 +64,12 @@ class Projectile {
 		this.free = true;
 	}
 	draw(context) {
-		if (!this.free) context.fillRect(this.x, this.y, this.width, this.height);
+		if (!this.free) {
+			context.save();
+			context.fillStyle = '#fff';
+			context.fillRect(this.x, this.y, this.width, this.height);
+			context.restore();
+		}
 	}
 	update() {
 		if (!this.free) {
@@ -114,17 +137,14 @@ class Enemy {
 				if (!this.game.gameOver) this.game.score += this.maxLives; // increase score
 			}
 		}
-		// check collision enemies - player
-		if (this.game.checkCollision(this, this.game.player)) {
-			this.markedForDeletion = true;
-			if (!this.game.gameOver && this.game.score > 0) this.game.score--; // decrement score
+		// check collision enemies - player & enemy grid item has at least 1 life
+		if (this.game.checkCollision(this, this.game.player) && this.lives > 0) {
+			this.lives = 0;
 			this.game.player.lives--; // decrement life
-			if (this.game.player.lives < 1) this.game.gameOver = true;
 		}
-		// lose condition -- enemy reaches bottom of canvas
-		if (this.y + this.height > this.game.height) {
+		// lose condition -- enemy reaches bottom of canvas or player life hits 0
+		if (this.y + this.height > this.game.height || this.game.player.lives < 1) {
 			this.game.gameOver = true;
-			this.markedForDeletion = true;
 		}
 	}
 	hit(damage) {
@@ -216,14 +236,13 @@ class Game {
 		this.spriteUpdate = false;
 		this.spriteTimer = 0;
 		this.spriteInterval = 100;
-
 		canvas.addEventListener('mousedown', (e) => {
-			this.keys.push(e.type);
+			this.keys.push(e.type);	// add event type to keys arr
 			if (e.type === 'mousedown') this.player.shoot();
 		});
 		canvas.addEventListener('mouseup', (e) => {
-			const index = this.keys.indexOf(e.type);
-			if (index > -1) this.keys.splice(index, 1);
+			const index = this.keys.indexOf('mousedown');	// e.type for keyboard control
+			if (index > -1) this.keys.splice(index, 1);	// remove event type from keys arr
 		});
 
 		// mouse movement to get the x & y position of the mouse cursor on hover
@@ -253,13 +272,13 @@ class Game {
 		}
 
 		this.drawStatusText(context);
-		this.player.draw(context);
-		// this.player.update();	// old implementation for movement inside Player class
 		// cycle through projectilesPool
 		this.projectilesPool.forEach((projectile) => {
 			projectile.update();
 			projectile.draw(context);
 		});
+		this.player.draw(context);
+		// this.player.update();	// old implementation for movement inside Player class
 		// Enemy Waves
 		this.waves.forEach((wave) => {
 			wave.render(context);
@@ -268,7 +287,7 @@ class Game {
 				this.newWave();
 				this.waveCount++;
 				wave.nextWaveTrigger = true;
-				this.player.lives++; // bonus life per new wave
+				if (this.player.lives < this.player.maxLives) this.player.lives++; // bonus life per new wave
 			}
 		});
 	}
@@ -298,7 +317,11 @@ class Game {
 		context.save(); // saves global context settings inside window load event listener
 		context.fillText(`Score: ${this.score}`, 20, 40);
 		context.fillText(`Wave: ${this.waveCount}`, 20, 80);
-		// display lives in rectangles
+		// display max lives in rectangles
+		for (let i = 0; i < this.player.maxLives; i++) {
+			context.strokeRect(20 + 10 * i, 100, 5, 20);
+		}
+		// display lives
 		for (let i = 0; i < this.player.lives; i++) {
 			context.fillRect(20 + 10 * i, 100, 5, 20);
 		}
@@ -347,7 +370,7 @@ window.addEventListener('load', () => {
 	canvas.height = 800;
 	// ctx.fillStyle = 'white';
 	// ctx.strokeStyle = 'black';
-	ctx.lineWidth = 5;
+	// ctx.lineWidth = 5;
 	ctx.font = '30px Impact';
 
 	const game = new Game(canvas);

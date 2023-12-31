@@ -7,6 +7,6 @@
 	background: url('background.jpeg');
 }
 
-#beetlemorph {
+#beetlemorph, #player, #player_jets {
 	display: none;
 }
